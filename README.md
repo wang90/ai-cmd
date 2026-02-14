@@ -1,35 +1,43 @@
 # ai-cmd
 
-一个以 `ai` 为默认入口的命令行 AI 工具，保留 `fanyi` 作为翻译子能力，并提供 Web 配置面板。
+一个 AI 命令行工具集：默认入口是 `ai`（通用问答），并保留 `fanyi`（翻译）命令，同时提供 Web 面板用于统一管理配置、Token 与历史记录。
 
-## 核心定位
+## 功能概览
 
-- `ai`：通用 AI 问答命令（主入口）
-- `fanyi`：翻译命令（兼容原有习惯）
-- `web` 面板：统一管理配置、Token、翻译预览和历史记录
+- `ai`：命令行 AI 问答，支持流式输出，支持 `deepseek / qwen / openai`
+- `fanyi`：翻译命令，支持 `libre / deepseek / qwen / openai`
+- Web 面板：AI 助手、翻译配置、Token 管理、历史记录
+- 配置统一：CLI 与 Web 共用 `~/.ai-config.json`
+- 历史记录：优先写入 MongoDB（本地可选），不可用时主功能不受阻
+
+## 环境要求
+
+- Node.js 18+
+- npm 9+（或兼容版本）
+- MongoDB（可选，仅用于持久化历史记录）
 
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 1) 安装依赖
 npm install
 cd web && npm install && cd ..
 
-# 开发模式（建议开两个终端）
-# 终端1：后端 + API
+# 2) 启动服务端（API + 静态页面）
 npm run web
-# 终端2：前端热更新
+
+# 3) 可选：单独启动前端开发服务器（热更新）
 npm run dev:web
 ```
 
-打开：
+默认地址：
 
-- Web 配置页：`http://localhost:3000`
-- 前端开发页：`http://localhost:3001`
+- 服务端/生产静态页：`http://localhost:3000`
+- Vite 开发页：`http://localhost:3001`（代理 `/api -> 3000`）
 
-## 命令行用法
+## CLI 使用
 
-### 1) AI 问答（主入口）
+### `ai`（主入口）
 
 ```bash
 ai 解释一下什么是 RAG
@@ -48,10 +56,10 @@ ai web
 
 说明：
 
-- `ai` 仅支持 `deepseek / qwen / openai`
-- `libre` 是翻译引擎，不支持通用问答
+- `ai` 仅支持问答型 provider：`deepseek / qwen / openai`
+- `libre` 只用于翻译，不支持通用问答
 
-### 2) 翻译（保留 fanyi）
+### `fanyi`（翻译命令）
 
 ```bash
 fanyi hello
@@ -66,30 +74,27 @@ fanyi web
 ```bash
 -t, --to <lang>            目标语言（默认 zh）
 -f, --from <lang>          源语言（默认 auto）
--p, --provider <provider>  翻译提供商（libre/deepseek/qwen/openai）
+-p, --provider <provider>  翻译服务（libre/deepseek/qwen/openai）
 ```
 
 ## Web 面板说明
 
-当前 Web 页面已调整为 AI 优先，包含 4 个区块：
+Web 面板包含 4 个标签页：
 
-- `AI 助手`：模拟 `ai <问题>`，可直接提问和查看回答
-- `翻译配置 (fanyi)`：管理翻译 provider、源/目标语言、翻译预览
-- `Token 管理`：统一维护所有 provider 的 token（含自定义 provider 入口）
-- `历史记录`：查看/删除翻译历史
+- `AI 助手`：模拟 `ai <问题>`，支持流式回答
+- `翻译配置 (fanyi)`：设置源/目标语言、翻译 provider、翻译预览
+- `Token 管理`：集中管理内置和自定义 provider 的 token
+- `历史记录`：查看、筛选和删除历史
 
-## Token 配置（推荐）
+## 配置与 Token
 
-### 方式 1：Web 统一管理（推荐）
+### 推荐方式：Web 面板配置
 
-在 `Token 管理` 页面可直接维护：
+在 `Token 管理` 页面维护 token，保存后写入：
 
-- 内置 token：`deepseek`、`qwen`、`openai`
-- 自定义 token：例如 `claude`、`kimi`（先建入口，后续可接入）
+- `~/.ai-config.json`
 
-保存后写入同一份配置文件：`~/.ai-config.json`
-
-### 方式 2：环境变量
+### 环境变量方式
 
 ```bash
 export DEEPSEEK_API_KEY="your-deepseek-api-key"
@@ -97,9 +102,7 @@ export DASHSCOPE_API_KEY="your-qwen-api-key"
 export OPENAI_API_KEY="your-openai-api-key"
 ```
 
-### 方式 3：直接编辑配置文件
-
-`~/.ai-config.json` 示例：
+### 配置文件示例
 
 ```json
 {
@@ -115,7 +118,7 @@ export OPENAI_API_KEY="your-openai-api-key"
 }
 ```
 
-## 支持语言（fanyi）
+## 支持语言（`fanyi`）
 
 - `zh` 中文
 - `en` 英语
@@ -130,29 +133,47 @@ export OPENAI_API_KEY="your-openai-api-key"
 - `ar` 阿拉伯语
 - `auto` 自动检测（仅源语言）
 
-## 安装命令
+## 开发脚本
 
-推荐：
+```bash
+npm run dev        # node --watch server/index.js
+npm run web        # 启动服务端
+npm run start      # 启动服务端
+npm run build      # 构建前端 web/dist
+npm run dev:web    # 启动前端开发服务器（3001）
+npm run preview:web
+```
+
+## 历史记录存储说明
+
+- 项目会尝试连接 `mongodb://localhost:27017`
+- MongoDB 可用时：写入数据库 `ai-cmd.history`
+- MongoDB 不可用时：问答/翻译功能继续可用，仅历史能力受限
+
+## 常见问题
+
+- `OpenAI 402/429`：通常是额度不足或超限，检查 Billing 或切换 provider
+- `网络连接失败`：检查代理、防火墙、DNS，或切换其他 provider
+- `Web 页面提示未构建`：先执行 `npm run build`
+
+## 安装为全局命令
 
 ```bash
 ./install.sh
-```
-
-或者：
-
-```bash
+# 或
 npm link
 ```
 
-安装后可直接使用：
+安装后可直接执行：
 
 ```bash
 ai -h
 fanyi -h
 ```
 
-## 相关文档
+## 文档目录
 
 - 安装说明：`INSTALL.md`
 - Web 说明：`WEB_SETUP.md`
 - 快速上手：`QUICKSTART.md`
+- GitHub 使用文档：`docs/GITHUB_USAGE.md`

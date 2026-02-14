@@ -616,6 +616,28 @@
   border-bottom: 2px solid #f0f0f0;
 }
 
+.history-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.history-filter-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.history-filter-btn.active {
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
 .clear-btn {
   padding: 8px 16px;
   background: #ffffff;

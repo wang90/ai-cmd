@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
 import { ask, askStream } from '../src/providers.js';
+import { saveAskHistory } from '../src/db.js';
 
 const program = new Command();
 const configPath = path.resolve(process.env.HOME || process.env.USERPROFILE, '.ai-config.json');
@@ -125,11 +126,17 @@ program
         process.stdout.write(answer || '');
       }
       process.stdout.write('\n\n');
+      await saveAskHistory(input, answer || '', {
+        provider: config.provider || 'deepseek',
+      });
     } catch (err) {
       // 回退到非流式，尽量给出结果而不是直接失败
       try {
         const fallbackAnswer = await ask(input, config);
         console.log(`\n🤖 ${fallbackAnswer}\n`);
+        await saveAskHistory(input, fallbackAnswer || '', {
+          provider: config.provider || 'deepseek',
+        });
       } catch (fallbackErr) {
         console.error(`\n❌ AI 问答失败: ${fallbackErr.message}\n`);
         process.exitCode = 1;

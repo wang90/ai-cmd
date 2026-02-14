@@ -19,25 +19,19 @@ async function createDbClient() {
   return { client, db: client.db(DB_NAME) };
 }
 
-// 保存翻译历史（供CLI调用）
-export async function saveHistory(text, result, config) {
+async function insertHistoryEntry(entry) {
   let client = null;
   try {
     const conn = await createDbClient();
     client = conn.client;
     const collection = conn.db.collection(COLLECTION_NAME);
     await collection.insertOne({
-      text,
-      result,
-      provider: config.provider || 'libre',
-      from: config.from || 'auto',
-      to: config.to || 'zh',
-      timestamp: new Date(),
+      ...entry,
+      timestamp: entry.timestamp || new Date(),
     });
   } catch (error) {
-    // 静默失败，不影响翻译功能
+    // 静默失败，不影响主流程
   } finally {
-    // CLI 保存完历史后主动释放连接，避免进程卡住不退出
     if (client) {
       try {
         await client.close();
@@ -46,4 +40,29 @@ export async function saveHistory(text, result, config) {
       }
     }
   }
+}
+
+// 保存翻译历史（供CLI调用）
+export async function saveHistory(text, result, config) {
+  await insertHistoryEntry({
+    type: 'translation',
+    text,
+    result,
+    provider: config.provider || 'libre',
+    from: config.from || 'auto',
+    to: config.to || 'zh',
+  });
+}
+
+// 保存问答历史（供CLI与Web调用）
+export async function saveAskHistory(question, answer, config) {
+  await insertHistoryEntry({
+    type: 'qa',
+    question,
+    answer,
+    // 同时保存 text/result 兼容旧展示逻辑
+    text: question,
+    result: answer,
+    provider: config.provider || 'deepseek',
+  });
 }

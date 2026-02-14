@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { translate as previewTranslate, askStream as askAIStream } from '../src/providers.js';
+import { saveAskHistory } from '../src/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,7 +159,7 @@ app.post('/api/preview', async (req, res) => {
   }
 });
 
-// AI问答（不写入历史）
+// AI问答（写入历史）
 app.post('/api/ask', async (req, res) => {
   try {
     const question = (req.body?.question || '').toString().trim();
@@ -185,6 +186,13 @@ app.post('/api/ask', async (req, res) => {
     if (!wroteChunk) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.write(answer || '');
+    }
+    try {
+      await saveAskHistory(question, answer || '', {
+        provider: askConfig.provider || 'deepseek',
+      });
+    } catch (historyErr) {
+      // 问答结果优先，历史写入失败不影响主流程
     }
     res.end();
   } catch (error) {
@@ -290,8 +298,10 @@ app.get('/api/history', async (req, res) => {
       return res.json([]);
     }
     const collection = db.collection(COLLECTION_NAME);
+    const type = (req.query?.type || 'all').toString();
+    const filter = type === 'qa' || type === 'translation' ? { type } : {};
     const history = await collection
-      .find({})
+      .find(filter)
       .sort({ timestamp: -1 })
       .limit(100)
       .toArray();

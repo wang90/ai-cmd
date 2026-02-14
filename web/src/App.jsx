@@ -27,6 +27,7 @@ function App() {
     apiKeys: {},
   });
   const [history, setHistory] = useState([]);
+  const [historyFilter, setHistoryFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [presets, setPresets] = useState([]);
@@ -64,6 +65,11 @@ function App() {
     ['de', '德语'],
     ['es', '西班牙语'],
     ['ru', '俄语'],
+  ];
+  const HISTORY_FILTERS = [
+    { key: 'all', label: '全部' },
+    { key: 'qa', label: '问题类' },
+    { key: 'translation', label: '翻译类' },
   ];
 
   useEffect(() => {
@@ -108,6 +114,14 @@ function App() {
       showMessage('error', '加载历史记录失败: ' + error.message);
     }
   };
+
+  const normalizedHistory = history.map((item) => ({
+    ...item,
+    type: item.type === 'qa' ? 'qa' : 'translation',
+  }));
+  const filteredHistory = normalizedHistory.filter((item) => (
+    historyFilter === 'all' ? true : item.type === historyFilter
+  ));
 
   useEffect(() => {
     if (location.pathname === '/history') {
@@ -802,35 +816,55 @@ function App() {
                   ) : (
                     <>
                       <div className="history-header">
-                        <span>共 {history.length} 条记录</span>
+                        <span>共 {filteredHistory.length} 条记录</span>
                         <button className="clear-btn" onClick={clearHistory}>
                           🗑️ 清空全部
                         </button>
                       </div>
-                      <div className="history-list">
-                        {history.map((item) => (
-                          <div key={item._id} className="history-item">
-                            <div className="history-content">
-                              <div className="history-text">
-                                <span className="label">原文:</span>
-                                <span className="text">{item.text}</span>
-                              </div>
-                              <div className="history-text">
-                                <span className="label">译文:</span>
-                                <span className="text result">{item.result}</span>
-                              </div>
-                            </div>
-                            <div className="history-side">
-                              <div className="history-meta">
-                                <span>{item.from} → {item.to}</span>
-                                <span>{formatDate(item.timestamp)}</span>
-                              </div>
-                              <button className="delete-btn" onClick={() => deleteHistory(item._id)}>
-                                ✕
-                              </button>
-                            </div>
-                          </div>
+                      <div className="history-filters">
+                        {HISTORY_FILTERS.map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            className={`history-filter-btn ${historyFilter === item.key ? 'active' : ''}`}
+                            onClick={() => setHistoryFilter(item.key)}
+                          >
+                            {item.label}
+                          </button>
                         ))}
+                      </div>
+                      <div className="history-list">
+                        {filteredHistory.length === 0 ? (
+                          <div className="empty-state">当前筛选暂无记录</div>
+                        ) : (
+                          filteredHistory.map((item) => (
+                            <div key={item._id} className="history-item">
+                              <div className="history-content">
+                                <div className="history-text">
+                                  <span className="label">{item.type === 'qa' ? '问题:' : '原文:'}</span>
+                                  <span className="text">{item.question || item.text}</span>
+                                </div>
+                                <div className="history-text">
+                                  <span className="label">{item.type === 'qa' ? '回答:' : '译文:'}</span>
+                                  <span className="text result">{item.answer || item.result}</span>
+                                </div>
+                              </div>
+                              <div className="history-side">
+                                <div className="history-meta">
+                                  {item.type === 'qa' ? (
+                                    <span>问题类 · {item.provider || 'ai'}</span>
+                                  ) : (
+                                    <span>{item.from} → {item.to}</span>
+                                  )}
+                                  <span>{formatDate(item.timestamp)}</span>
+                                </div>
+                                <button className="delete-btn" onClick={() => deleteHistory(item._id)}>
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </>
                   )}
