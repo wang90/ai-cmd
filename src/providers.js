@@ -21,8 +21,8 @@ export const PROVIDERS = {
     defaultModel: 'gpt-3.5-turbo',
   },
   libre: {
-    name: 'LibreTranslate (免费)',
-    baseUrl: 'https://libretranslate.de',
+    name: 'Google Translate (免费)',
+    baseUrl: 'https://translate.googleapis.com',
     apiKeyEnv: null,
     defaultModel: null,
   },
@@ -99,6 +99,22 @@ function buildAskPayload(providerConfig, question, stream = false) {
   };
 }
 
+function buildTranslatePayload(providerConfig, text, from, to, stream = false) {
+  const fromLang = LANGUAGE_NAMES[from] || from;
+  const toLang = LANGUAGE_NAMES[to] || to;
+  const systemPrompt = `You are a professional translator. Translate the user's text from ${fromLang} to ${toLang}. Only return the translated text without any explanation or additional content.`;
+
+  return {
+    model: providerConfig.defaultModel,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: text },
+    ],
+    temperature: 0.3,
+    stream,
+  };
+}
+
 async function readErrorBody(response) {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
@@ -108,7 +124,7 @@ async function readErrorBody(response) {
   return await response.text();
 }
 
-async function askWithAIStream(provider, question, apiKey, onChunk) {
+async function streamChatCompletion(provider, apiKey, payload, onChunk, actionLabel) {
   const providerConfig = PROVIDERS[provider];
   const url = `${providerConfig.baseUrl}/chat/completions`;
   const response = await fetch(url, {
@@ -117,17 +133,20 @@ async function askWithAIStream(provider, question, apiKey, onChunk) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify(buildAskPayload(providerConfig, question, true)),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    const err = new Error(`API错误: ${response.status} - ${await readErrorBody(response)}`);
-    err.statusCode = response.status;
-    throw wrapProviderError({ response: { status: response.status, data: { error: { message: err.message.replace(/^API错误: \d+ - /, '') } } } }, `请求${providerConfig.name}问答服务失败`, provider);
+    const responseMessage = await readErrorBody(response);
+    throw wrapProviderError(
+      { response: { status: response.status, data: { error: { message: responseMessage } } } },
+      `请求${providerConfig.name}${actionLabel}失败`,
+      provider
+    );
   }
 
   if (!response.body) {
-    const err = new Error(`请求${providerConfig.name}问答服务失败: 响应流为空`);
+    const err = new Error(`请求${providerConfig.name}${actionLabel}失败: 响应流为空`);
     err.statusCode = 502;
     throw err;
   }
@@ -155,7 +174,7 @@ async function askWithAIStream(provider, question, apiKey, onChunk) {
             const content = parsed?.choices?.[0]?.delta?.content || '';
             if (content) {
               fullText += content;
-              onChunk(content);
+              onChunk?.(content);
             }
           } catch {
             // 忽略非JSON流片段，继续消费后续内容
@@ -169,35 +188,27 @@ async function askWithAIStream(provider, question, apiKey, onChunk) {
   return fullText.trim();
 }
 
+async function askWithAIStream(provider, question, apiKey, onChunk) {
+  const providerConfig = PROVIDERS[provider];
+  return await streamChatCompletion(
+    provider,
+    apiKey,
+    buildAskPayload(providerConfig, question, true),
+    onChunk,
+    '问答服务'
+  );
+}
+
 // 使用AI模型进行翻译
 async function translateWithAI(provider, text, from, to, apiKey) {
   const providerConfig = PROVIDERS[provider];
-  const fromLang = LANGUAGE_NAMES[from] || from;
-  const toLang = LANGUAGE_NAMES[to] || to;
-  
-  const systemPrompt = `You are a professional translator. Translate the user's text from ${fromLang} to ${toLang}. Only return the translated text without any explanation or additional content.`;
-  
-  const url = `${providerConfig.baseUrl}/chat/completions`;
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-  };
-  
-  const data = {
-    model: providerConfig.defaultModel,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: text },
-    ],
-    temperature: 0.3,
-  };
-  
-  try {
-    const response = await axios.post(url, data, { headers });
-    return response.data.choices[0].message.content.trim();
-  } catch (error) {
-    throw wrapProviderError(error, `请求${providerConfig.name}翻译服务失败`, provider);
-  }
+  return await streamChatCompletion(
+    provider,
+    apiKey,
+    buildTranslatePayload(providerConfig, text, from, to, true),
+    () => {},
+    '翻译服务'
+  );
 }
 
 // 使用AI模型进行通用问答
@@ -218,47 +229,49 @@ async function askWithAI(provider, question, apiKey) {
   }
 }
 
-// 使用LibreTranslate进行翻译（免费服务）
-async function translateWithLibre(text, from, to) {
+// 使用 Google Translate 进行翻译（免费服务）
+async function translateWithGoogle(text, from, to) {
   try {
-    const response = await axios.post(
-      `${PROVIDERS.libre.baseUrl}/translate`,
+    const response = await axios.get(
+      `${PROVIDERS.libre.baseUrl}/translate_a/single`,
       {
-        q: text,
-        source: from,
-        target: to,
-        format: 'text',
-      },
-      {
-        headers: { 'accept': 'application/json' },
+        params: {
+          client: 'gtx',
+          sl: from || 'auto',
+          tl: to,
+          dt: 't',
+          q: text,
+        },
+        timeout: 15000,
+        headers: { accept: 'application/json' },
       }
     );
-    const translated = response?.data?.translatedText ?? response?.data?.translated_text;
+
+    const segments = Array.isArray(response?.data?.[0]) ? response.data[0] : [];
+    const translated = segments
+      .map((segment) => (Array.isArray(segment) ? segment[0] : ''))
+      .join('')
+      .trim();
+
     if (typeof translated !== 'string' || !translated.trim()) {
-      throw new Error('LibreTranslate 返回了空翻译结果');
+      throw new Error('Google Translate 返回了空翻译结果');
     }
     return translated;
   } catch (error) {
     if (error.response) {
-      const err = new Error(
-        `LibreTranslate错误: ${error.response.status} - ${error.response.data?.error || JSON.stringify(error.response.data)}`
-      );
-      err.statusCode = error.response.status;
-      throw err;
+      throw wrapProviderError(error, '请求 Google Translate 翻译服务失败', 'libre');
     }
-    const err = new Error(`请求 LibreTranslate 失败: ${error.code || error.message}`);
-    err.statusCode = 502;
-    throw err;
+    throw wrapProviderError(error, '请求 Google Translate 翻译服务失败', 'libre');
   }
 }
 
 // 主翻译函数
 export async function translate(text, config) {
-  const { provider = 'libre', from = 'auto', to = 'zh', apiKeys = {} } = config;
+  const { provider = 'libre', from = 'auto', to = 'zh', apiKeys = {}, token = '' } = config;
   
-  // 如果使用LibreTranslate（免费服务）
+  // 如果使用 Google Translate（免费服务）
   if (provider === 'libre') {
-    return await translateWithLibre(text, from, to);
+    return await translateWithGoogle(text, from, to);
   }
   
   // 使用AI模型翻译
@@ -272,6 +285,10 @@ export async function translate(text, config) {
   if (!apiKey && providerConfig.apiKeyEnv) {
     apiKey = process.env[providerConfig.apiKeyEnv];
   }
+  if (!apiKey && token) {
+    // 兼容旧配置：仅保留 token 字段时仍可用
+    apiKey = token;
+  }
   
   if (!apiKey) {
     throw new Error(`请配置${providerConfig.name}的API Key。可以通过Web界面配置或设置环境变量${providerConfig.apiKeyEnv}`);
@@ -282,7 +299,7 @@ export async function translate(text, config) {
 
 // 主问答函数
 export async function ask(question, config) {
-  const { provider = 'deepseek', apiKeys = {} } = config;
+  const { provider = 'deepseek', apiKeys = {}, token = '' } = config;
   const providerConfig = PROVIDERS[provider];
 
   if (!providerConfig) {
@@ -290,13 +307,16 @@ export async function ask(question, config) {
   }
 
   if (provider === 'libre') {
-    throw new Error('LibreTranslate 仅支持翻译，不支持通用问答。请将 provider 设置为 deepseek / qwen / openai。');
+    throw new Error('Google Translate 仅支持翻译，不支持通用问答。请将 provider 设置为 deepseek / qwen / openai。');
   }
 
   // 获取API Key（优先使用配置中的，其次使用环境变量）
   let apiKey = apiKeys[provider];
   if (!apiKey && providerConfig.apiKeyEnv) {
     apiKey = process.env[providerConfig.apiKeyEnv];
+  }
+  if (!apiKey && token) {
+    apiKey = token;
   }
 
   if (!apiKey) {
@@ -307,19 +327,22 @@ export async function ask(question, config) {
 }
 
 export async function askStream(question, config, onChunk) {
-  const { provider = 'deepseek', apiKeys = {} } = config;
+  const { provider = 'deepseek', apiKeys = {}, token = '' } = config;
   const providerConfig = PROVIDERS[provider];
 
   if (!providerConfig) {
     throw new Error(`未知的AI服务提供商: ${provider}`);
   }
   if (provider === 'libre') {
-    throw new Error('LibreTranslate 仅支持翻译，不支持通用问答。请将 provider 设置为 deepseek / qwen / openai。');
+    throw new Error('Google Translate 仅支持翻译，不支持通用问答。请将 provider 设置为 deepseek / qwen / openai。');
   }
 
   let apiKey = apiKeys[provider];
   if (!apiKey && providerConfig.apiKeyEnv) {
     apiKey = process.env[providerConfig.apiKeyEnv];
+  }
+  if (!apiKey && token) {
+    apiKey = token;
   }
   if (!apiKey) {
     throw new Error(`请配置${providerConfig.name}的API Key。可以通过Web界面配置或设置环境变量${providerConfig.apiKeyEnv}`);

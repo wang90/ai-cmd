@@ -134,7 +134,6 @@ program
         console.error(`\n❌ AI 问答失败: ${fallbackErr.message}\n`);
         process.exitCode = 1;
       }
-      process.exitCode = 1;
     }
   });
 

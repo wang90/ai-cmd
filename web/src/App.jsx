@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 
 const API_BASE = '/api';
 const PROVIDERS = {
-  libre: 'LibreTranslate (免费)',
+  libre: 'Google Translate (免费)',
   deepseek: 'DeepSeek',
   qwen: '通义千问',
   openai: 'ChatGPT',
@@ -18,6 +18,7 @@ const PROVIDER_LINKS = {
 const CONFIG_PROVIDER_STORAGE_KEY = 'fanyi-config-provider';
 
 function App() {
+  const location = useLocation();
   const [config, setConfig] = useState({
     from: 'auto',
     to: 'zh',
@@ -108,6 +109,12 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    if (location.pathname === '/history') {
+      loadHistory();
+    }
+  }, [location.pathname]);
+
   const saveConfig = async (options = {}) => {
     const { silent = false } = options;
     setLoading(true);
@@ -124,22 +131,36 @@ function App() {
   };
 
   const deleteHistory = async (id) => {
+    const prevHistory = history;
+    setHistory((prev) => prev.filter((item) => item._id !== id));
     try {
-      await axios.delete(`${API_BASE}/history/${id}`);
-      loadHistory();
+      const res = await axios.delete(`${API_BASE}/history/${id}`);
+      if (res?.data?.success === false) {
+        setHistory(prevHistory);
+        showMessage('error', res.data?.message || '删除失败');
+        return;
+      }
       showMessage('success', '已删除');
     } catch (error) {
+      setHistory(prevHistory);
       showMessage('error', '删除失败: ' + error.message);
     }
   };
 
   const clearHistory = async () => {
     if (!window.confirm('确定要清空所有历史记录吗？')) return;
+    const prevHistory = history;
+    setHistory([]);
     try {
-      await axios.delete(`${API_BASE}/history`);
-      loadHistory();
+      const res = await axios.delete(`${API_BASE}/history`);
+      if (res?.data?.success === false) {
+        setHistory(prevHistory);
+        showMessage('error', res.data?.message || '清空失败');
+        return;
+      }
       showMessage('success', '历史记录已清空');
     } catch (error) {
+      setHistory(prevHistory);
       showMessage('error', '清空失败: ' + error.message);
     }
   };
@@ -392,7 +413,7 @@ function App() {
                   to="/history"
                   className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}
                 >
-                  📜 历史记录 ({history.length})
+                  📜 历史记录
                 </NavLink>
               </div>
             </aside>
@@ -798,14 +819,16 @@ function App() {
                                 <span className="label">译文:</span>
                                 <span className="text result">{item.result}</span>
                               </div>
+                            </div>
+                            <div className="history-side">
                               <div className="history-meta">
                                 <span>{item.from} → {item.to}</span>
                                 <span>{formatDate(item.timestamp)}</span>
                               </div>
+                              <button className="delete-btn" onClick={() => deleteHistory(item._id)}>
+                                ✕
+                              </button>
                             </div>
-                            <button className="delete-btn" onClick={() => deleteHistory(item._id)}>
-                              ✕
-                            </button>
                           </div>
                         ))}
                       </div>

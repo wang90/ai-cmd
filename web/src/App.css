@@ -604,7 +604,8 @@
 .history-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+  overflow-x: hidden;
 }
 
 .history-header {
@@ -617,46 +618,63 @@
 
 .clear-btn {
   padding: 8px 16px;
-  background: #dc3545;
-  color: white;
-  border: none;
+  background: #ffffff;
+  color: #dc3545;
+  border: 1px solid #dc3545;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
 }
 
 .clear-btn:hover {
-  background: #c82333;
+  background: #fff1f2;
+  border-color: #c82333;
+  color: #c82333;
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   max-height: 600px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
 }
 
 .history-item {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  background: #f8f9fa;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
   border-radius: 8px;
-  border-left: 4px solid #667eea;
-  transition: transform 0.2s, box-shadow 0.2s;
+  border-left: 3px solid #94a3b8;
+  border: 1px solid #e2e8f0;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
 }
 
 .history-item:hover {
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .history-content {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.history-side {
+  min-width: 150px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -670,13 +688,15 @@
   font-weight: 600;
   color: #666;
   min-width: 50px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .history-text .text {
   flex: 1;
   color: #333;
   word-break: break-word;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .history-text .text.result {
@@ -686,15 +706,17 @@
 
 .history-meta {
   display: flex;
-  gap: 16px;
-  font-size: 12px;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
   color: #999;
-  margin-top: 4px;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .delete-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: #dc3545;
   color: white;
@@ -809,5 +831,22 @@
 
   .token-add-row {
     grid-template-columns: 1fr;
+  }
+
+  .history-item {
+    grid-template-columns: 1fr;
+  }
+
+  .history-side {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .history-meta {
+    text-align: left;
+    white-space: normal;
   }
 }

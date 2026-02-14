@@ -107,7 +107,7 @@ function showManual() {
   -man, --manual                 显示详细使用手册
 
 支持的翻译服务提供商:
-  libre      LibreTranslate (免费，默认)
+  libre      Google Translate (免费，默认)
   deepseek   DeepSeek (需要API Key)
   qwen       通义千问 (需要API Key)
   openai     ChatGPT (需要API Key)
@@ -119,7 +119,7 @@ function showManual() {
   it    意大利语      ar    阿拉伯语      auto  自动检测
 
 示例:
-  fanyi hello                     # 使用LibreTranslate翻译为中文
+  fanyi hello                     # 使用Google Translate翻译为中文
   fanyi 你好 -t en                # 翻译为英语
   fanyi apple -t ja -f en         # 从英语翻译为日语
   fanyi hello -p deepseek         # 使用DeepSeek翻译
@@ -275,7 +275,7 @@ program
     // 显示翻译结果
     const fromLang = config.from === 'auto' ? 'auto' : (LANGUAGES[config.from] || config.from);
     const toLang = LANGUAGES[config.to] || config.to;
-    const providerName = config.provider === 'libre' ? 'LibreTranslate' : 
+    const providerName = config.provider === 'libre' ? 'Google Translate' : 
                         config.provider === 'deepseek' ? 'DeepSeek' :
                         config.provider === 'qwen' ? '通义千问' :
                         config.provider === 'openai' ? 'ChatGPT' : config.provider;
