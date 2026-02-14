@@ -8,6 +8,7 @@
   },
   "type": "module",
   "scripts": {
+    "predev": "node scripts/free-port.mjs 3000",
     "dev": "tsx watch server/index.ts",
     "web": "tsx server/index.ts",
     "start": "tsx server/index.ts",

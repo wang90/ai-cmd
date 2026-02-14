@@ -592,7 +592,7 @@ function App() {
               </div>
             </aside>
 
-            <main className="content-area">
+            <main className={`content-area ${location.pathname === '/docs' ? 'docs-mode' : ''}`}>
               <Routes>
                 <Route
                   path="/"

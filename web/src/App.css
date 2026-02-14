@@ -97,6 +97,10 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
+.content-area.docs-mode {
+  overflow: hidden;
+}
+
 .assistant-panel {
   display: flex;
   flex-direction: column;
@@ -605,6 +609,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
+  min-height: 0;
   overflow-x: hidden;
 }
 
@@ -659,10 +665,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 600px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 2px;
+  padding-right: 10px;
 }
 
 .history-item {
@@ -675,7 +682,6 @@
   border-left: 3px solid #94a3b8;
   border: 1px solid #e2e8f0;
   transition: background-color 0.2s ease, border-color 0.2s ease;
-  overflow: hidden;
 }
 
 .history-item:hover {
@@ -767,13 +773,16 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
+  min-height: 0;
 }
 
 .docs-layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 12px;
-  min-height: 560px;
+  height: 100%;
+  min-height: 0;
 }
 
 .docs-sidebar {
@@ -784,6 +793,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
 }
 
 .docs-sidebar-head {
@@ -813,6 +823,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -851,6 +863,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 .docs-current-path {
