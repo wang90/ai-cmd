@@ -28,15 +28,15 @@ sudo npm install -g .
 
 ```bash
 # 添加到 ~/.zshrc
-echo 'alias ai="node /Users/wang90/ai-cmd/bin/ai.js"' >> ~/.zshrc
+echo 'alias ai="/Users/wang90/ai-cmd/bin/ai"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
 ## 方式4: 直接使用 node 运行
 
 ```bash
-node /Users/wang90/ai-cmd/bin/ai.js "你好，介绍一下自己"
-node /Users/wang90/ai-cmd/bin/ai.js web
+/Users/wang90/ai-cmd/bin/ai "你好，介绍一下自己"
+/Users/wang90/ai-cmd/bin/ai web
 ```
 
 ## 验证安装

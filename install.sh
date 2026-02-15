@@ -3,8 +3,8 @@
 # ai-cmd 安装脚本
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BIN_PATH="$SCRIPT_DIR/bin/fanyi.js"
-AI_BIN_PATH="$SCRIPT_DIR/bin/ai.js"
+BIN_PATH="$SCRIPT_DIR/bin/fanyi"
+AI_BIN_PATH="$SCRIPT_DIR/bin/ai"
 
 echo "🚀 正在安装 ai-cmd..."
 
@@ -57,10 +57,10 @@ fi
 if [ -n "$SHELL_RC" ]; then
     # 检查别名是否已存在
     if ! grep -q "alias fanyi=" "$SHELL_RC" 2>/dev/null; then
-        echo "alias fanyi=\"node $BIN_PATH\"" >> "$SHELL_RC"
+        echo "alias fanyi=\"$BIN_PATH\"" >> "$SHELL_RC"
     fi
     if ! grep -q "alias ai=" "$SHELL_RC" 2>/dev/null; then
-        echo "alias ai=\"node $AI_BIN_PATH\"" >> "$SHELL_RC"
+        echo "alias ai=\"$AI_BIN_PATH\"" >> "$SHELL_RC"
     fi
     echo "✅ 已添加命令别名到 $SHELL_RC（若已存在则跳过）"
     echo ""
@@ -70,8 +70,8 @@ if [ -n "$SHELL_RC" ]; then
     echo "或者重新打开终端窗口"
 else
     echo "⚠️  无法自动检测 shell，请手动添加别名："
-    echo "  alias ai=\"node $AI_BIN_PATH\""
-    echo "  alias fanyi=\"node $BIN_PATH\""
+    echo "  alias ai=\"$AI_BIN_PATH\""
+    echo "  alias fanyi=\"$BIN_PATH\""
 fi
 
 echo ""

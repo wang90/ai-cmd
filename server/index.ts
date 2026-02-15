@@ -35,26 +35,26 @@ interface DocEntry {
 }
 
 function collectMarkdownDocs(): DocEntry[] {
-  const roots = [
-    { absDir: PROJECT_ROOT, scope: 'root' },
-    { absDir: path.join(PROJECT_ROOT, 'docs'), scope: 'docs' },
-  ];
   const docs: DocEntry[] = [];
-  const seen = new Set<string>();
+  const readmePath = path.join(PROJECT_ROOT, 'README.md');
+  if (fs.existsSync(readmePath)) {
+    docs.push({
+      path: 'README.md',
+      title: getDocTitle('README.md'),
+      scope: 'root',
+    });
+  }
 
-  for (const root of roots) {
-    if (!fs.existsSync(root.absDir)) continue;
-    const entries = fs.readdirSync(root.absDir, { withFileTypes: true });
+  const docsDir = path.join(PROJECT_ROOT, 'docs');
+  if (fs.existsSync(docsDir)) {
+    const entries = fs.readdirSync(docsDir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.md')) continue;
-      const absPath = path.join(root.absDir, entry.name);
-      const relativePath = path.relative(PROJECT_ROOT, absPath).replace(/\\/g, '/');
-      if (seen.has(relativePath)) continue;
-      seen.add(relativePath);
+      const relativePath = `docs/${entry.name}`.replace(/\\/g, '/');
       docs.push({
         path: relativePath,
         title: getDocTitle(relativePath),
-        scope: root.scope,
+        scope: 'docs',
       });
     }
   }

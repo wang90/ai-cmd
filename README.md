@@ -173,7 +173,7 @@ fanyi -h
 
 ## 文档目录
 
-- 安装说明：`INSTALL.md`
-- Web 说明：`WEB_SETUP.md`
-- 快速上手：`QUICKSTART.md`
+- 安装说明：`docs/INSTALL.md`
+- Web 说明：`docs/WEB_SETUP.md`
+- 快速上手：`docs/QUICKSTART.md`
 - GitHub 使用文档：`docs/GITHUB_USAGE.md`

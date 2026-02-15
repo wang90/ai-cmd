@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "AI command line assistant with translation support",
   "bin": {
-    "ai": "./bin/ai.js",
-    "fanyi": "./bin/fanyi.js"
+    "ai": "./bin/ai",
+    "fanyi": "./bin/fanyi"
   },
   "type": "module",
   "scripts": {
